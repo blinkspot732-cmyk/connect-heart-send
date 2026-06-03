@@ -1,1 +1,22 @@
 project_id = "abjwmllylfdbcmhfqwvk"
+
+[functions.device-connect]
+verify_jwt = false
+
+[functions.device-heartbeat]
+verify_jwt = false
+
+[functions.device-poll]
+verify_jwt = false
+
+[functions.sms-sent]
+verify_jwt = false
+
+[functions.sms-failed]
+verify_jwt = false
+
+[functions.incoming-sms]
+verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = false
