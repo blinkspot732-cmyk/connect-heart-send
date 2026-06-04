@@ -6,8 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Copy, Smartphone, Trash2 } from "lucide-react";
+import { Plus, Copy, Smartphone, Trash2, QrCode } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { generateDeviceId, generateDeviceToken, sha256Hex, isOnline, timeAgo } from "@/lib/credentials";
+
+const SUPABASE_FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/devices")({
@@ -126,10 +129,24 @@ function DevicesPage() {
       </Dialog>
 
       <Dialog open={!!showCreds} onOpenChange={(o) => !o && setShowCreds(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Device created</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Copy these into your Android app. The token will <strong>not be shown again</strong>.</p>
-          <div className="space-y-3 mt-2">
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Device created — pair your phone</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Scan the QR with the SimGate Android app, or copy credentials manually. The token will <strong>not be shown again</strong>.</p>
+          {showCreds && (
+            <div className="flex justify-center my-4 p-4 bg-white rounded-lg border">
+              <QRCodeSVG
+                value={JSON.stringify({
+                  v: 1,
+                  api: SUPABASE_FN_BASE,
+                  device_id: showCreds.deviceId,
+                  device_token: showCreds.token,
+                })}
+                size={220}
+                level="M"
+              />
+            </div>
+          )}
+          <div className="space-y-3">
             <div>
               <Label>Device ID</Label>
               <div className="flex gap-2"><Input readOnly value={showCreds?.deviceId ?? ""} /><Button type="button" variant="outline" onClick={() => copy(showCreds!.deviceId)}><Copy className="size-4" /></Button></div>
@@ -137,6 +154,10 @@ function DevicesPage() {
             <div>
               <Label>Device Token</Label>
               <div className="flex gap-2"><Input readOnly value={showCreds?.token ?? ""} /><Button type="button" variant="outline" onClick={() => copy(showCreds!.token)}><Copy className="size-4" /></Button></div>
+            </div>
+            <div>
+              <Label>API Base</Label>
+              <div className="flex gap-2"><Input readOnly value={SUPABASE_FN_BASE} /><Button type="button" variant="outline" onClick={() => copy(SUPABASE_FN_BASE)}><Copy className="size-4" /></Button></div>
             </div>
           </div>
           <DialogFooter><Button onClick={() => setShowCreds(null)}>Done</Button></DialogFooter>
