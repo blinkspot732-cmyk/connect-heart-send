@@ -25,7 +25,7 @@ function AuthLayout() {
     return () => subscription.unsubscribe();
   }, []);
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="md:flex min-h-screen bg-background">
       <Sidebar email={email} />
       <main className="flex-1 overflow-x-hidden">
         <Outlet />
@@ -34,3 +34,4 @@ function AuthLayout() {
     </div>
   );
 }
+
