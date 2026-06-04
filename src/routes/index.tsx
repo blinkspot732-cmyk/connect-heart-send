@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Smartphone, Zap, ShieldCheck, Code2 } from "lucide-react";
+import { ArrowRight, Smartphone, Zap, ShieldCheck, Code2, QrCode, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
