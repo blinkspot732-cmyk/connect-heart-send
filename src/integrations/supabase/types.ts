@@ -166,6 +166,7 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          phone: string | null
           updated_at: string
         }
         Insert: {
@@ -173,6 +174,7 @@ export type Database = {
           email?: string | null
           id: string
           name?: string | null
+          phone?: string | null
           updated_at?: string
         }
         Update: {
@@ -180,7 +182,38 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      signup_registry: {
+        Row: {
+          created_at: string
+          email: string
+          fingerprint: string | null
+          id: string
+          ip: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          fingerprint?: string | null
+          id?: string
+          ip?: string | null
+          phone?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -189,7 +222,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_signup_allowed: {
+        Args: { _fingerprint: string; _phone: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -6,7 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import {
+  emailSchema, passwordSchema, nameSchema, phoneSchema,
+  sanitizeText, getDeviceFingerprint,
+} from "@/lib/security";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -19,6 +24,9 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -36,27 +44,95 @@ function AuthPage() {
   };
 
   const signIn = async (e: React.FormEvent) => {
-    e.preventDefault(); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    e.preventDefault();
+    const parsedEmail = emailSchema.safeParse(email);
+    if (!parsedEmail.success) return toast.error(parsedEmail.error.issues[0].message);
+    if (!password) return toast.error("Password required");
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: parsedEmail.data,
+      password,
+    });
     setLoading(false);
     if (error) toast.error(error.message);
     else router.navigate({ to: "/dashboard" });
   };
 
   const signUp = async (e: React.FormEvent) => {
-    e.preventDefault(); setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { name }, emailRedirectTo: `${window.location.origin}/dashboard` },
+    e.preventDefault();
+
+    const safeName = sanitizeText(name, 80);
+    const parsedName = nameSchema.safeParse(safeName);
+    if (!parsedName.success) return toast.error(parsedName.error.issues[0].message);
+
+    const parsedEmail = emailSchema.safeParse(email);
+    if (!parsedEmail.success) return toast.error(parsedEmail.error.issues[0].message);
+
+    const parsedPhone = phoneSchema.safeParse(phone);
+    if (!parsedPhone.success) return toast.error(parsedPhone.error.issues[0].message);
+
+    const parsedPwd = passwordSchema.safeParse(password);
+    if (!parsedPwd.success) return toast.error(parsedPwd.error.issues[0].message);
+
+    setLoading(true);
+
+    // Device fingerprint + phone limit check (max 2 per identifier)
+    const fingerprint = await getDeviceFingerprint();
+    const { data: check, error: checkErr } = await supabase.rpc("check_signup_allowed", {
+      _phone: parsedPhone.data,
+      _fingerprint: fingerprint,
+    });
+    if (checkErr) { setLoading(false); return toast.error("Could not verify signup eligibility"); }
+    const result = check as { allowed: boolean; reason?: string };
+    if (!result.allowed) {
+      setLoading(false);
+      return toast.error(
+        result.reason === "phone_limit"
+          ? "This phone number has reached the maximum number of accounts."
+          : "This device has reached the maximum number of accounts."
+      );
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: parsedEmail.data,
+      password,
+      options: {
+        data: { name: parsedName.data, phone: parsedPhone.data },
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) { setLoading(false); return toast.error(error.message); }
+
+    // Record fingerprint+phone for limit tracking
+    if (data.user) {
+      await supabase.from("signup_registry").insert({
+        user_id: data.user.id,
+        phone: parsedPhone.data,
+        fingerprint,
+        email: parsedEmail.data,
+      });
+    }
+
+    setLoading(false);
+    toast.success("Account created. Check your email to confirm.");
+  };
+
+  const sendReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = emailSchema.safeParse(forgotEmail);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) toast.error(error.message);
-    else toast.success("Check your email to confirm, or sign in.");
+    else { toast.success("Reset link sent (if account exists)"); setForgotOpen(false); }
   };
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-primary to-accent text-primary-foreground">
+      <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-primary via-primary to-primary-glow text-primary-foreground">
         <div>
           <div className="flex items-center gap-3 mb-12">
             <div className="size-10 rounded-xl bg-primary-foreground/15 grid place-items-center font-bold">S</div>
@@ -67,8 +143,12 @@ function AuthPage() {
         </div>
         <p className="text-sm text-primary-foreground/70">© SimGate</p>
       </div>
-      <div className="flex items-center justify-center p-6">
-        <Card className="w-full max-w-md p-8">
+      <div className="flex items-center justify-center p-4 sm:p-6">
+        <Card className="w-full max-w-md p-6 sm:p-8">
+          <div className="flex lg:hidden items-center gap-2 mb-4">
+            <div className="size-8 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold">S</div>
+            <span className="font-semibold">SimGate</span>
+          </div>
           <h2 className="text-2xl font-semibold tracking-tight">Welcome</h2>
           <p className="text-sm text-muted-foreground mb-6">Sign in or create an account.</p>
           <Button variant="outline" className="w-full" onClick={google} disabled={loading}>
@@ -85,22 +165,46 @@ function AuthPage() {
             </TabsList>
             <TabsContent value="signin">
               <form onSubmit={signIn} className="space-y-4 mt-4">
-                <div><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                <div><Label>Password</Label><Input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                <div><Label>Email</Label><Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+                <div>
+                  <div className="flex justify-between"><Label>Password</Label>
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => { setForgotEmail(email); setForgotOpen(true); }}>Forgot?</button>
+                  </div>
+                  <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
                 <Button type="submit" className="w-full" disabled={loading}>Sign in</Button>
               </form>
             </TabsContent>
             <TabsContent value="signup">
               <form onSubmit={signUp} className="space-y-4 mt-4">
-                <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-                <div><Label>Email</Label><Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-                <div><Label>Password</Label><Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+                <div><Label>Name</Label><Input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} required /></div>
+                <div><Label>Email</Label><Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+                <div><Label>Phone (international)</Label><Input type="tel" placeholder="+233501234567" required value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+                <div>
+                  <Label>Password</Label>
+                  <Input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <p className="text-xs text-muted-foreground mt-1">8+ chars, upper, lower, number.</p>
+                </div>
                 <Button type="submit" className="w-full" disabled={loading}>Create account</Button>
               </form>
             </TabsContent>
           </Tabs>
+          <p className="text-xs text-muted-foreground mt-6 text-center">
+            By continuing you agree to fair-use, no spam, no abuse. Disposable emails are blocked.
+          </p>
         </Card>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reset your password</DialogTitle></DialogHeader>
+          <form onSubmit={sendReset} className="space-y-4">
+            <div><Label>Email</Label><Input type="email" required value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} /></div>
+            <Button type="submit" className="w-full" disabled={loading}>Send reset link</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
