@@ -160,6 +160,57 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_kes: number
+          authorization_url: string | null
+          created_at: string
+          display_amount: number | null
+          display_currency: string | null
+          expires_at: string
+          id: string
+          paid_at: string | null
+          raw_payload: Json | null
+          reference: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_kes: number
+          authorization_url?: string | null
+          created_at?: string
+          display_amount?: number | null
+          display_currency?: string | null
+          expires_at?: string
+          id?: string
+          paid_at?: string | null
+          raw_payload?: Json | null
+          reference: string
+          status?: string
+          tier: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_kes?: number
+          authorization_url?: string | null
+          created_at?: string
+          display_amount?: number | null
+          display_currency?: string | null
+          expires_at?: string
+          id?: string
+          paid_at?: string | null
+          raw_payload?: Json | null
+          reference?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -217,11 +268,161 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          paystack_reference: string | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paystack_reference?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          paystack_reference?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_daily: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          sent_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          sent_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          sent_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          endpoint_id: string
+          event: string
+          id: string
+          last_error: string | null
+          last_response_code: number | null
+          next_attempt_at: string
+          payload: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          endpoint_id: string
+          event: string
+          id?: string
+          last_error?: string | null
+          last_response_code?: number | null
+          next_attempt_at?: string
+          payload: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          endpoint_id?: string
+          event?: string
+          id?: string
+          last_error?: string | null
+          last_response_code?: number | null
+          next_attempt_at?: string
+          payload?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_id_fkey"
+            columns: ["endpoint_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          active: boolean
+          created_at: string
+          events: string[]
+          id: string
+          secret: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          secret: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          id?: string
+          secret?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_and_increment_sms_quota: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
       check_signup_allowed: {
         Args: { _fingerprint: string; _phone: string }
         Returns: Json
