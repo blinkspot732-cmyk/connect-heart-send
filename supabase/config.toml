@@ -20,3 +20,16 @@ verify_jwt = false
 
 [functions.send-sms]
 verify_jwt = false
+
+[functions.paystack-init]
+verify_jwt = true
+
+[functions.paystack-verify]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.webhook-dispatcher]
+verify_jwt = false
+
