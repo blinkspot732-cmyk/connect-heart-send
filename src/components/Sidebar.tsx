@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LayoutDashboard, Smartphone, MessageSquare, KeyRound, BarChart3, LogOut, Webhook, Menu, X } from "lucide-react";
+import { LayoutDashboard, Smartphone, MessageSquare, Code2, BarChart3, LogOut, Webhook, Menu, X, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -8,9 +8,10 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/devices", label: "Devices", icon: Smartphone },
   { to: "/messages", label: "Messages", icon: MessageSquare },
-  { to: "/api-keys", label: "API Keys", icon: KeyRound },
+  { to: "/developers", label: "Developers", icon: Code2 },
   { to: "/webhooks", label: "Webhooks", icon: Webhook },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/billing", label: "Billing", icon: CreditCard },
 ];
 
 export function Sidebar({ email }: { email?: string | null }) {
